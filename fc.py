@@ -72,11 +72,11 @@ print("x_test data", x_test_data.shape)
 Split_train_data = x_train_data.reshape([int(x_train_data.shape[0]/D), x_train_data.shape[1]*D])
 Split_test_data=x_test_data.reshape([int(x_test_data.shape[0]/D), x_test_data.shape[1]*D])
 
-Split_train_data_x=Split_train_data[0:-1,:]
-Split_train_data_y=Split_train_data[1:,:]
+Split_train_data_x = Split_train_data[0:-1,:].astype(np.float32)
+Split_train_data_y = Split_train_data[1:,:].astype(np.float32)
 
-Split_test_data_x=Split_test_data[0:-1,:]
-Split_test_data_y=Split_test_data[1:,:]
+Split_test_data_x=Split_test_data[0:-1,:].astype(np.float32)
+Split_test_data_y=Split_test_data[1:,:].astype(np.float32)
 
 img_rows = D
 
@@ -128,12 +128,12 @@ class fc_model(nn.Module):
         self.fc7 = nn.Linear(arch[6], arch[7])
         
     def forward(self, x):
-        x = nn.LeakyReLU(self.fc1(x))
-        x = nn.LeakyReLU(self.fc2(x))
-        x = nn.LeakyReLU(self.fc3(x))
-        x = nn.LeakyReLU(self.fc4(x))
-        x = nn.LeakyReLU(self.fc5(x))
-        x = nn.LeakyReLU(self.fc6(x))
+        x = F.leaky_relu(self.fc1(x), inplace=True)
+        x = F.leaky_relu(self.fc2(x), inplace=True)
+        x = F.leaky_relu(self.fc3(x), inplace=True)
+        x = F.leaky_relu(self.fc4(x), inplace=True)
+        x = F.leaky_relu(self.fc5(x), inplace=True)
+        x = F.leaky_relu(self.fc6(x), inplace=True)
         x = self.fc7(x)
 
         return x
@@ -149,7 +149,7 @@ class model_loss(nn.Module):
     def forward(self, x, target):
         return F.mse_loss(x, target)
 
-criterion = model_loss
+criterion = model_loss()
 
 # define optimizer. use SGD here.
 optimizer = optim.SGD(model.parameters(), lr=args.lr,
@@ -216,4 +216,6 @@ import os
 if not os.path.isdir("weights"): os.mkdir("weights")
 torch.save(model.state_dict(), 'weights/fc' +
                str(epoch+1) + '.pth')
+
+# evaluate
 
