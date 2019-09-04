@@ -75,8 +75,8 @@ Split_test_data=x_test_data.reshape([int(x_test_data.shape[0]/D), x_test_data.sh
 Split_train_data_x = Split_train_data[0:-1,:].astype(np.float32)
 Split_train_data_y = Split_train_data[1:,:].astype(np.float32)
 
-Split_test_data_x=Split_test_data[0:-1,:].astype(np.float32)
-Split_test_data_y=Split_test_data[1:,:].astype(np.float32)
+Split_test_data_x = Split_test_data[0:-1,:].astype(np.float32)
+Split_test_data_y = Split_test_data[1:,:].astype(np.float32)
 
 img_rows = D
 
@@ -118,16 +118,23 @@ print(targets[0].shape)  # ミニバッチのサイズのリスト、各要素�
 class fc_model(nn.Module):
     def __init__(self, arch):
         super(fc_model, self).__init__()
-        
+        self.arch = arch
         self.fc1 = nn.Linear(arch[0], arch[1])
+        self.bn1 = nn.BatchNorm1d(arch[1])
         self.fc2 = nn.Linear(arch[1], arch[2])
+        self.bn2 = nn.BatchNorm1d(arch[2])
         self.fc3 = nn.Linear(arch[2], arch[3])
+        self.bn3 = nn.BatchNorm1d(arch[3])
         self.fc4 = nn.Linear(arch[3], arch[4])
+        self.bn4 = nn.BatchNorm1d(arch[4])
         self.fc5 = nn.Linear(arch[4], arch[5])
+        self.bn5 = nn.BatchNorm1d(arch[5])
         self.fc6 = nn.Linear(arch[5], arch[6])
+        self.bn6 = nn.BatchNorm1d(arch[6])
         self.fc7 = nn.Linear(arch[6], arch[7])
         
     def forward(self, x):
+        # network performed well without batchnorm
         x = F.leaky_relu(self.fc1(x), inplace=True)
         x = F.leaky_relu(self.fc2(x), inplace=True)
         x = F.leaky_relu(self.fc3(x), inplace=True)
@@ -168,6 +175,8 @@ model.train()
 
 iteration = 1
 phase = "train"
+
+log_loss = []
 
 for epoch in range(num_epoch):
     # 開始時刻を保存
@@ -211,6 +220,7 @@ for epoch in range(num_epoch):
         epoch+1, epoch_train_loss, 0))
     print('timer:  {:.4f} sec.'.format(t_epoch_finish - t_epoch_start))
     t_epoch_start = time.time()
+    log_loss.append(epoch_train_loss)
 
 import os
 if not os.path.isdir("weights"): os.mkdir("weights")
@@ -218,4 +228,58 @@ torch.save(model.state_dict(), 'weights/fc' +
                str(epoch+1) + '.pth')
 
 # evaluate
+model.eval()
+predict = model(torch.from_numpy(Split_test_data_x))
+
+measured = Split_test_data_y.reshape(799*400)
+predicted = predict.detach().numpy().reshape(799*400)
+
+Loss_model=np.power(measured-predicted,2)
+mean_window = 1000
+Loss_model_processed = Loss_model[0:Loss_model.size-mean_window]
+
+# smoothen anomaly score
+for x in range(Loss_model.size-mean_window):
+    Loss_model_processed[x] = np.mean(Loss_model[x:x+mean_window])
+# normalize the score
+Loss_model_processed = Loss_model_processed/(np.std(Loss_model_processed))
+    
+##### plot results #####
+if not os.path.isdir("figs"): os.mkdir("figs")
+fig0 = plt.figure()
+plt.xlabel("epoch")
+plt.ylabel("train loss")
+plt.plot(log_loss, label='trainloss')
+plt.legend()
+plt.show()
+fig0.savefig('figs/FC_trainloss.png')
+
+fig1 = plt.figure()
+plt.xlabel("sample")
+plt.ylabel("anomaly score")
+plt.plot(Loss_model_processed, label='FC model score')
+plt.legend()
+plt.show()
+
+fig1.savefig('figs/FC_anomaly_score.png')
+
+fig2 = plt.figure()
+plt.xlabel("sample")
+plt.ylabel("value")
+plt.plot(predicted[157500:163000], label='Pytorch FC model prediction')
+plt.plot(measured[157500:163000], label='real data')
+plt.legend()
+plt.show()
+
+fig2.savefig("figs/FC_waveforms.png")
+
+fig3 = plt.figure()
+plt.xlabel("sample")
+plt.ylabel("value")
+plt.plot(measured[0:3000], label='real data')
+plt.plot(predicted[0:3000], label='Pytorch FC model prediction')
+plt.legend()
+plt.show()
+
+fig3.savefig("figs/normal_waveform_predict.png")
 
