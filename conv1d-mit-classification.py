@@ -63,8 +63,8 @@ Split_train_data_x = x_train_data.astype(np.float32)
 Split_test_data_x = x_test_data.astype(np.float32)
 
 # define dataset    
-train_dataset = classify_anomaly_dataset(Split_train_data_x[:8000], y_train_data[:8000])
-val_dataset = classify_anomaly_dataset(Split_test_data_x, y_test_data)
+train_dataset = classify_anomaly_dataset(Split_train_data_x[:20000], y_train_data[:20000])
+val_dataset = classify_anomaly_dataset(Split_train_data_x[20000:], y_train_data[20000:])
 
 # データローダーの作成
 train_dataloader = torch.utils.data.DataLoader(
