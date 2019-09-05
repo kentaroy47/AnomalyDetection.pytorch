@@ -67,20 +67,25 @@ class classify_fc_model(nn.Module):
 class classify_conv_model(nn.Module):
     def __init__(self):
         super(classify_conv_model, self).__init__()
-        self.conv1 = nn.Conv1d(1, 64, kernel_size=3, stride=2, padding=1)
+        self.conv1 = nn.Conv1d(1, 64, kernel_size=1, stride=1, padding=0)
         self.conv2 = nn.Conv1d(64, 64, kernel_size=3, stride=2, padding=1)
-        self.fc1 = nn.Linear(11520, 400)
+        self.conv3 = nn.Conv1d(64, 128, kernel_size=3, stride=2, padding=1)
+        self.fc1 = nn.Linear(46080, 400)
         self.do1 = nn.Dropout(0.25)
         self.fc2 = nn.Linear(400, 100)
+        self.do2 = nn.Dropout(0.25)
         self.fc3 = nn.Linear(100, 2)
         
     def forward(self, x):
         # network performed well without batchnorm
         x = F.leaky_relu(self.conv1(x), inplace=True)
-        x = F.leaky_relu(self.conv2(x), inplace=True)
-        x = x.view(-1, 11520)
+#        x = F.leaky_relu(self.conv2(x), inplace=True)
+#        x = F.leaky_relu(self.conv3(x), inplace=True)
+        x = x.view(-1, 46080)
         x = F.leaky_relu(self.fc1(x), inplace=True)
+        x = self.do1(x)        
         x = F.leaky_relu(self.fc2(x), inplace=True)
+        x = self.do2(x)
         x = self.fc3(x)
         return x
 
